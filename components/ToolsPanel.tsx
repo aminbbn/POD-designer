@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TabType, Product, ProductColor } from '../types';
 import { FONTS } from '../constants';
-import { Search, Loader2, Wand2, Plus, Type as TypeIcon, Image as ImageIcon, Trash2, Lock, Eye, EyeOff, Sparkles, Layers } from 'lucide-react';
+import { Search, Loader2, Wand2, Plus, Type as TypeIcon, Image as ImageIcon, Trash2, Lock, Eye, EyeOff, Sparkles, Layers, Check } from 'lucide-react';
 import { generateDesignIdeas } from '../services/geminiService';
 
 interface ToolsPanelProps {
@@ -97,13 +97,24 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
                   className={`
                     group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 ease-out
                     ${currentProduct.id === product.id 
-                      ? 'ring-1 ring-primary shadow-xl scale-[1.02] z-10' 
+                      ? 'ring-2 ring-primary shadow-[0_0_30px_-5px_rgba(59,130,246,0.5)] scale-[1.02] z-10' 
                       : 'border border-white/5 hover:border-white/20 hover:shadow-2xl hover:-translate-y-1 bg-white/[0.02]'
                     }
                   `}
                 >
+                  {/* Selected Badge */}
+                  <div className={`
+                    absolute top-3 right-3 z-30 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-500
+                    ${currentProduct.id === product.id ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-0 rotate-90'}
+                  `}>
+                    <Check size={14} strokeWidth={3} />
+                  </div>
+
                   {/* Image Container */}
-                  <div className="aspect-[3/4] bg-[#121212] relative overflow-hidden flex items-center justify-center p-4">
+                  <div className={`
+                    aspect-[3/4] relative overflow-hidden flex items-center justify-center p-4 transition-colors duration-500
+                    ${currentProduct.id === product.id ? 'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent' : 'bg-[#121212]'}
+                  `}>
                     
                     {/* Thumbnail Rendering - Technical Flat */}
                     {product.views[0].path ? (
@@ -127,14 +138,19 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
                     )}
                     
                     {/* Floating Price Tag */}
-                    <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md border border-white/10 px-2 py-1 rounded-lg">
+                    <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md border border-white/10 px-2 py-1 rounded-lg z-20">
                       <p className="text-[10px] font-bold text-white font-mono tracking-tight" dir="ltr">${product.price}</p>
                     </div>
                   </div>
 
                   {/* Product Info */}
-                  <div className="p-3 bg-surface border-t border-white/5 relative group-hover:bg-[#1f1f22] transition-colors">
-                    <h3 className="text-xs font-bold text-slate-200 truncate mb-1 group-hover:text-white transition-colors">{product.name}</h3>
+                  <div className={`
+                    p-3 border-t relative transition-colors duration-300
+                    ${currentProduct.id === product.id ? 'bg-surface border-primary/20' : 'bg-surface border-white/5 group-hover:bg-[#1f1f22]'}
+                  `}>
+                    <h3 className={`text-xs font-bold truncate mb-1 transition-colors ${currentProduct.id === product.id ? 'text-primary' : 'text-slate-200 group-hover:text-white'}`}>
+                        {product.name}
+                    </h3>
                     
                     <div className="flex items-center justify-between mt-2">
                        {/* Color Dots Preview */}
@@ -163,11 +179,11 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
                     onClick={() => onColorChange(color)}
                     className={`
                       group relative w-9 h-9 rounded-full transition-all duration-300 ease-out flex items-center justify-center
-                      ${currentProductColor.id === color.id ? 'scale-110' : 'hover:scale-105 opacity-80 hover:opacity-100'}
+                      ${currentProductColor.id === color.id ? 'scale-110 shadow-[0_0_15px_-3px_rgba(59,130,246,0.5)]' : 'hover:scale-105 opacity-80 hover:opacity-100'}
                     `}
                   >
                     {/* Active Indicator Ring */}
-                    <div className={`absolute inset-0 rounded-full border transition-all duration-500 ${currentProductColor.id === color.id ? 'border-primary opacity-100 scale-125' : 'border-white/20 opacity-0 scale-100 group-hover:opacity-100 group-hover:scale-110'}`} />
+                    <div className={`absolute inset-0 rounded-full border-2 transition-all duration-500 ${currentProductColor.id === color.id ? 'border-primary opacity-100 scale-125' : 'border-white/20 opacity-0 scale-100 group-hover:opacity-100 group-hover:scale-110'}`} />
                     
                     {/* The Color */}
                     <div 
@@ -210,15 +226,30 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
                     key={font}
                     onClick={() => setActiveFont(font)}
                     className={`
-                      px-4 py-3 text-right rounded-lg text-sm transition-all duration-300 flex items-center justify-between group
+                      relative px-4 py-3 text-right rounded-xl text-sm transition-all duration-300 flex items-center justify-between group overflow-hidden
                       ${activeFont === font 
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        ? 'shadow-lg shadow-primary/20 ring-1 ring-primary/50' 
+                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-transparent hover:border-white/10'
                       }
                     `}
                   >
-                    {activeFont === font && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                    <span style={{ fontFamily: font }} className="text-base">{font}</span>
+                    {/* Active Gradient Background */}
+                    <div className={`
+                      absolute inset-0 bg-gradient-to-l from-primary to-blue-600 transition-opacity duration-300
+                      ${activeFont === font ? 'opacity-100' : 'opacity-0'}
+                    `}/>
+
+                    <span style={{ fontFamily: font }} className={`
+                      relative z-10 text-base transition-colors duration-300
+                      ${activeFont === font ? 'text-white font-bold' : ''}
+                    `}>
+                      {font}
+                    </span>
+
+                    {/* Active Checkmark */}
+                    <div className={`relative z-10 transition-all duration-300 ${activeFont === font ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
+                      <Check size={16} className="text-white" />
+                    </div>
                   </button>
                 ))}
               </div>

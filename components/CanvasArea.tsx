@@ -200,8 +200,8 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 border-b-2 border-r-2 border-primary/60"></div>
 
              {/* Label */}
-             <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/50 backdrop-blur rounded border border-white/10">
-                 <span className="text-[9px] font-mono text-white/60 tracking-widest uppercase">محدوده چاپ</span>
+             <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/50 backdrop-blur rounded border border-white/10 shadow-sm">
+                 <span className="text-[10px] font-bold text-white/80">محدوده چاپ</span>
              </div>
          </div>
 
