@@ -36,6 +36,7 @@ const ProductBackdrop: React.FC<{ view: ProductView; color: string }> = ({ view,
                     strokeWidth="1"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
                 />
             ))}
         </svg>
@@ -56,33 +57,46 @@ interface FabricLayerProps {
   onObjectSelected: (obj: any) => void;
   onSelectionCleared: () => void;
   setLayers: (layers: any[]) => void;
+  quality: number;
+  printArea: { top: number; left: number; width: number; height: number };
 }
 
 const FabricLayer: React.FC<FabricLayerProps> = ({ 
   canvasRef, 
   onObjectSelected, 
   onSelectionCleared, 
-  setLayers 
+  setLayers,
+  quality,
+  printArea
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
+  // 1. Initialize Canvas
   useEffect(() => {
     if (!window.fabric || !containerRef.current || initialized.current) return;
     
-    // Create canvas
+    // Create canvas with high resolution backing store
+    // We set logical size (500x600) * quality (2) = 1000x1200 physical pixels
     const canvas = new window.fabric.Canvas('c', {
-      width: 500,
-      height: 600,
+      width: 500 * quality,
+      height: 600 * quality,
       backgroundColor: null, // Transparent
       preserveObjectStacking: true,
       selection: true,
+      enableRetinaScaling: false, // We handle scaling manually via zoom
     });
+
+    // Force the CSS size to match the base logical size (500x600)
+    canvas.setDimensions({ width: '500px', height: '600px' }, { cssOnly: true });
+
+    // Set zoom to match the quality multiplier
+    canvas.setZoom(quality);
 
     canvasRef.current = canvas;
     initialized.current = true;
 
-    // Event Listeners
+    // Event Listeners for Selection & Layers
     canvas.on('selection:created', (e: any) => {
       if(e.selected && e.selected.length > 0) onObjectSelected(e.selected[0]);
     });
@@ -93,7 +107,6 @@ const FabricLayer: React.FC<FabricLayerProps> = ({
       onSelectionCleared();
     });
     
-    // Update layers state on modifications
     const updateLayers = () => {
         setLayers(canvas.getObjects());
     }
@@ -103,9 +116,76 @@ const FabricLayer: React.FC<FabricLayerProps> = ({
     canvas.on('object:modified', updateLayers);
 
     return () => {
-      // Cleanup logic if needed
+      // Cleanup if necessary
     };
-  }, []);
+  }, [quality]);
+
+  // 2. Apply Safe Zone Constraints (ClipPath + Movement Limits)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !printArea) return;
+
+    // A. Apply Visual Clipping (The "Mask")
+    // This ensures anything outside the box is not rendered
+    const clipRect = new window.fabric.Rect({
+        left: printArea.left,
+        top: printArea.top,
+        width: printArea.width,
+        height: printArea.height,
+        absolutePositioned: true,
+        fill: 'transparent',
+        selectable: false,
+        evented: false,
+        strokeWidth: 0
+    });
+    canvas.clipPath = clipRect;
+
+    // B. Apply Movement Constraints (The "Wall")
+    // This prevents dragging objects out of the box
+    const constraintHandler = (e: any) => {
+        const obj = e.target;
+        if (!obj) return;
+        
+        // We assume origin is 'center' for our objects (set in App.tsx)
+        // If not, logic needs adjustment.
+        
+        const objWidth = obj.getScaledWidth();
+        const objHeight = obj.getScaledHeight();
+        const halfW = objWidth / 2;
+        const halfH = objHeight / 2;
+        
+        // Calculate boundaries for the CENTER of the object
+        let minLeft = printArea.left + halfW;
+        let maxLeft = printArea.left + printArea.width - halfW;
+        let minTop = printArea.top + halfH;
+        let maxTop = printArea.top + printArea.height - halfH;
+
+        // If Object is wider/taller than the print area, lock it to the center
+        if (minLeft > maxLeft) {
+            minLeft = maxLeft = printArea.left + printArea.width / 2;
+        }
+        if (minTop > maxTop) {
+            minTop = maxTop = printArea.top + printArea.height / 2;
+        }
+
+        // Apply Clamping
+        if (obj.left < minLeft) obj.left = minLeft;
+        if (obj.left > maxLeft) obj.left = maxLeft;
+        if (obj.top < minTop) obj.top = minTop;
+        if (obj.top > maxTop) obj.top = maxTop;
+    };
+
+    // Safely add and remove the specific listener
+    canvas.on('object:moving', constraintHandler);
+
+    canvas.requestRenderAll();
+
+    return () => {
+        // Only remove this specific handler, so we don't break App.tsx's listeners
+        canvas.off('object:moving', constraintHandler);
+    };
+
+  }, [printArea]);
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center" ref={containerRef}>
@@ -135,6 +215,11 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
   const [zoom, setZoom] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Quality Multiplier: 2x resolution for crisp text/edges
+  const QUALITY = 2;
+  const BASE_WIDTH = 500;
+  const BASE_HEIGHT = 600;
+
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 0.1, 4.0));
   };
@@ -146,41 +231,35 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
   const handleFit = () => {
     if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        // Product container size is fixed at 500x600
-        const contentWidth = 500;
-        const contentHeight = 600;
+        // Base content size
+        const contentWidth = BASE_WIDTH;
+        const contentHeight = BASE_HEIGHT;
         
-        // Calculate scale to fit exactly
+        // Calculate scale to fit
         const scaleX = width / contentWidth;
         const scaleY = height / contentHeight;
-
-        // Use 95% of the available space (very tight fit)
-        // This ensures maximum visibility while keeping just a tiny margin
-        const fitRatio = 0.95; 
+        const fitRatio = 0.90; 
 
         const optimalZoom = Math.min(scaleX, scaleY) * fitRatio;
-        
-        // Allow zooming up to 4.0x if screen allows, min 0.4x
         setZoom(Math.min(Math.max(optimalZoom, 0.4), 4.0));
     }
   };
 
   return (
     <div ref={containerRef} className="flex-1 bg-background relative flex items-center justify-center overflow-hidden workspace-grid">
-       {/* Product Display Container */}
+       {/* Product Display Container - Base Size (500x600) */}
        <div 
-         className="relative transition-all duration-300 animate-fade-in z-10"
+         className="relative transition-all duration-300 animate-fade-in z-10 origin-center shadow-2xl"
          style={{
-             width: '500px',
-             height: '600px',
-             transform: `scale(${zoom})`,
-             transformOrigin: 'center center'
+             width: `${BASE_WIDTH}px`,
+             height: `${BASE_HEIGHT}px`,
+             transform: `scale(${zoom})`, 
          }}
        >
          {/* Layer 1: The Product SVG (Technical Outline) */}
          <ProductBackdrop view={currentView} color={currentProductColor} />
          
-         {/* Layer 2: Printable Area Guides (Always Visible Now) */}
+         {/* Layer 2: Printable Area Guides - Uses Base Coordinates */}
          <div 
             className="absolute z-10 pointer-events-none transition-all duration-300"
             style={{
@@ -191,26 +270,28 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
             }}
          >
              {/* Dashed Border */}
-             <div className="w-full h-full border border-dashed border-white/30 rounded-sm"></div>
+             <div className="w-full h-full border-2 border-dashed border-white/30 rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.2)]"></div>
              
              {/* Tech Corners (Viewfinder style) */}
-             <div className="absolute -top-0.5 -left-0.5 w-3 h-3 border-t-2 border-l-2 border-primary/60"></div>
-             <div className="absolute -top-0.5 -right-0.5 w-3 h-3 border-t-2 border-r-2 border-primary/60"></div>
-             <div className="absolute -bottom-0.5 -left-0.5 w-3 h-3 border-b-2 border-l-2 border-primary/60"></div>
-             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 border-b-2 border-r-2 border-primary/60"></div>
+             <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-primary/80"></div>
+             <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-primary/80"></div>
+             <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-primary/80"></div>
+             <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-primary/80"></div>
 
              {/* Label */}
-             <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/50 backdrop-blur rounded border border-white/10 shadow-sm">
-                 <span className="text-[10px] font-bold text-white/80">محدوده چاپ</span>
+             <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary/90 rounded border border-white/10 shadow-sm">
+                 <span className="text-[10px] font-bold text-white">محدوده چاپ</span>
              </div>
          </div>
 
-         {/* Layer 3: Fabric Canvas (Interactive) */}
+         {/* Layer 3: Fabric Canvas (Interactive) - Handles its own High DPI internally */}
          <FabricLayer 
             canvasRef={canvasRef} 
             onObjectSelected={onObjectSelected}
             onSelectionCleared={onSelectionCleared}
             setLayers={setLayers}
+            quality={QUALITY}
+            printArea={currentView.printArea}
          />
        </div>
 
@@ -222,7 +303,6 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
             title="Fit to screen"
           >
              <Maximize size={18} />
-             {/* Tooltip */}
              <span className="absolute left-full ml-2 px-2 py-1 bg-black/80 text-[10px] text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                 جاگیری در صفحه
              </span>

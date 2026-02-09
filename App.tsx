@@ -18,15 +18,19 @@ const App: React.FC = () => {
 
   // --- Canvas Actions ---
 
-  const handleAddText = (text: string, fontFamily: string) => {
+  const handleAddText = (text: string, fontFamily: string, options: any = {}) => {
     if (!canvasRef.current || !window.fabric) return;
     
     const textBox = new window.fabric.IText(text, {
       left: 250, // Center roughly
       top: 300,
       fontFamily: fontFamily,
-      fill: '#ffffff',
-      fontSize: 40,
+      fill: options.fill || '#ffffff',
+      fontSize: options.fontSize || 40,
+      fontWeight: options.fontWeight || 'normal',
+      shadow: options.shadow || null,
+      stroke: options.stroke || null,
+      strokeWidth: options.strokeWidth || 0,
       originX: 'center',
       originY: 'center',
       cornerColor: '#3B82F6',
@@ -34,12 +38,19 @@ const App: React.FC = () => {
       transparentCorners: false,
       cornerSize: 10,
       textAlign: 'right', // Default RTL alignment
-      direction: 'rtl'
+      direction: 'rtl',
+      // Critical for sharp text rendering & preventing shadow clipping
+      objectCaching: false,
+      strokeUniform: true,
+      // Add padding to ensure selection box clears effects like wide strokes/shadows
+      padding: 20,
+      ...options
     });
 
     canvasRef.current.add(textBox);
     canvasRef.current.setActiveObject(textBox);
     setLayers(canvasRef.current.getObjects());
+    setSelectedObject(textBox);
   };
 
   const handleAddImage = (url: string) => {
@@ -57,11 +68,39 @@ const App: React.FC = () => {
             cornerStyle: 'circle',
             transparentCorners: false,
             cornerSize: 10,
+            padding: 10,
         });
         canvasRef.current.add(img);
         canvasRef.current.setActiveObject(img);
         setLayers(canvasRef.current.getObjects());
      }, { crossOrigin: 'anonymous' });
+  };
+
+  const handleUpdateObject = (key: string, value: any) => {
+    if (!canvasRef.current || !selectedObject) return;
+    
+    // Special handling for shadow which might need object construction
+    if (key === 'shadow') {
+        if (value === null) {
+            selectedObject.set('shadow', null);
+        } else if (typeof value === 'object') {
+            selectedObject.set('shadow', new window.fabric.Shadow(value));
+        }
+    } else {
+        selectedObject.set(key, value);
+    }
+    
+    // Ensure objectCaching stays false to prevent clipping artifacts on updates
+    if (selectedObject.type === 'i-text') {
+        selectedObject.set('objectCaching', false);
+    }
+    
+    selectedObject.setCoords(); // Ensure coords update for things like positioning
+    canvasRef.current.requestRenderAll();
+    
+    // Force update state to reflect changes in UI
+    setSelectedObject(selectedObject); 
+    setLayers([...canvasRef.current.getObjects()]);
   };
 
   const handleDeleteLayer = (index: number) => {
@@ -72,6 +111,7 @@ const App: React.FC = () => {
           canvasRef.current.discardActiveObject();
           canvasRef.current.requestRenderAll();
           setLayers(canvasRef.current.getObjects());
+          setSelectedObject(null);
       }
   };
 
@@ -126,6 +166,30 @@ const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    
+    // Additional listener for scaling/moving to update UI in real-time
+    const updateLayers = () => {
+        setLayers(canvas.getObjects());
+        // Also force update selected object state if it's the one being modified
+        if (canvas.getActiveObject()) {
+            setSelectedObject(canvas.getActiveObject());
+        }
+    }
+
+    canvas.on('object:scaling', updateLayers);
+    canvas.on('object:moving', updateLayers);
+    canvas.on('object:rotating', updateLayers);
+
+    return () => {
+        canvas.off('object:scaling', updateLayers);
+        canvas.off('object:moving', updateLayers);
+        canvas.off('object:rotating', updateLayers);
+    };
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-background text-white font-sans selection:bg-primary/30">
       <TopBar 
@@ -154,6 +218,8 @@ const App: React.FC = () => {
           onDeleteLayer={handleDeleteLayer}
           onToggleLock={handleToggleLock}
           onToggleVisibility={handleToggleVisibility}
+          selectedObject={selectedObject}
+          onUpdateObject={handleUpdateObject}
         />
         
         <CanvasArea 
@@ -164,83 +230,6 @@ const App: React.FC = () => {
           onObjectSelected={setSelectedObject}
           setLayers={setLayers}
         />
-
-        {/* Floating Context Property Panel (Left Side in RTL logic, which is the physical Left) */}
-        {selectedObject && (
-           <div className="absolute left-6 top-24 w-64 bg-surface/90 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl p-4 animate-fade-in z-50 text-right">
-               <div className="flex justify-between items-center mb-3">
-                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">ویژگی‌ها</h3>
-                   <button onClick={() => canvasRef.current?.discardActiveObject().requestRenderAll()} className="text-slate-500 hover:text-white">&times;</button>
-               </div>
-               
-               {selectedObject.type === 'i-text' && (
-                   <div className="space-y-3">
-                       <div>
-                           <label className="text-xs text-slate-500 block mb-1">رنگ</label>
-                           <input 
-                            type="color" 
-                            className="w-full h-8 rounded cursor-pointer"
-                            value={selectedObject.fill as string}
-                            onChange={(e) => {
-                                selectedObject.set('fill', e.target.value);
-                                canvasRef.current?.requestRenderAll();
-                            }}
-                           />
-                       </div>
-                       <div className="grid grid-cols-2 gap-2">
-                           <button 
-                             onClick={() => {
-                                 const isBold = selectedObject.fontWeight === 'bold';
-                                 selectedObject.set('fontWeight', isBold ? 'normal' : 'bold');
-                                 canvasRef.current?.requestRenderAll();
-                             }}
-                             className="py-1 bg-white/5 hover:bg-white/10 rounded text-xs border border-white/10"
-                            >
-                               ضخیم
-                           </button>
-                           <button 
-                             onClick={() => {
-                                 const isItalic = selectedObject.fontStyle === 'italic';
-                                 selectedObject.set('fontStyle', isItalic ? 'normal' : 'italic');
-                                 canvasRef.current?.requestRenderAll();
-                             }}
-                             className="py-1 bg-white/5 hover:bg-white/10 rounded text-xs border border-white/10"
-                            >
-                               مورب
-                           </button>
-                       </div>
-                   </div>
-               )}
-
-               {/* Universal Controls */}
-                <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                    <div className="flex justify-between">
-                         <label className="text-xs text-slate-500">شفافیت</label>
-                         <span className="text-xs text-slate-300">{Math.round((selectedObject.opacity || 1) * 100)}%</span>
-                    </div>
-                    <input 
-                        type="range" min="0" max="1" step="0.1"
-                        value={selectedObject.opacity || 1}
-                        onChange={(e) => {
-                            selectedObject.set('opacity', parseFloat(e.target.value));
-                            canvasRef.current?.requestRenderAll();
-                        }}
-                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full"
-                    />
-                </div>
-                
-                 <button 
-                  onClick={() => {
-                      canvasRef.current?.remove(selectedObject);
-                      canvasRef.current?.discardActiveObject();
-                      setLayers(canvasRef.current?.getObjects() || []);
-                  }}
-                  className="w-full mt-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold rounded transition-colors"
-                 >
-                     حذف لایه
-                 </button>
-           </div>
-        )}
       </div>
     </div>
   );

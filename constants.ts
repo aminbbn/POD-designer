@@ -65,12 +65,22 @@ export const PRODUCTS: Product[] = [
   }
 ];
 
-export const FONTS = [
+export const FARSI_FONTS = [
   'Vazirmatn',
-  'Arial',
-  'Times New Roman',
-  'Courier New',
-  'Tahoma',
-  'Yekan',
-  'Impact'
+  'Alibaba',
+  'IranSansX',
+  'IranYekanX',
+  'Kalameh',
+  'Morabba',
+  'YekanBakh',
 ];
+
+export const ENGLISH_FONTS = [
+  'Montserrat',
+  'Roboto',
+  'Oswald',
+  'Playfair Display',
+  'Dancing Script'
+];
+
+export const FONTS = [...FARSI_FONTS, ...ENGLISH_FONTS];
