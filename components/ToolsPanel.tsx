@@ -21,6 +21,7 @@ interface ToolsPanelProps {
   onColorChange: (color: ProductColor) => void;
   onAddText: (text: string, font: string, options?: any) => void;
   onAddImage: (url: string) => void;
+  onAddGraphic: (pathData: string) => void;
   isGenerating: boolean;
   setIsGenerating: (val: boolean) => void;
   layers: any[];
@@ -40,6 +41,7 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
   onColorChange,
   onAddText,
   onAddImage,
+  onAddGraphic,
   isGenerating,
   setIsGenerating,
   layers,
@@ -73,7 +75,8 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
   };
 
   return (
-    <div className="w-80 bg-surface/95 backdrop-blur-xl border-l border-white/5 h-full overflow-y-auto flex flex-col shadow-2xl relative z-10 text-right">
+    // Increased width to 420px (approx 26rem) to fit search + settings
+    <div className="w-[420px] bg-surface/95 backdrop-blur-xl border-l border-white/5 h-full overflow-y-auto flex flex-col shadow-2xl relative z-10 text-right transition-[width] duration-300">
       {/* Header Section */}
       <div className="p-6 pb-4 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent">
         <h2 className="text-xl font-display font-black text-white tracking-tight flex items-center justify-end gap-2">
@@ -121,6 +124,9 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
         {activeTab === TabType.GRAPHICS && (
           <GraphicsPanel 
             onAddImage={onAddImage}
+            onAddGraphic={onAddGraphic}
+            selectedObject={selectedObject}
+            onUpdateObject={onUpdateObject}
           />
         )}
 
