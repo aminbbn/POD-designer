@@ -28,6 +28,8 @@ interface ToolsPanelProps {
   onDeleteLayer: (index: number) => void;
   onToggleLock: (index: number) => void;
   onToggleVisibility: (index: number) => void;
+  onReorderLayer: (fromIndex: number, toIndex: number) => void;
+  onRenameLayer: (index: number, newName: string) => void;
   selectedObject: any;
   onUpdateObject: (key: string, value: any) => void;
 }
@@ -48,6 +50,8 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
   onDeleteLayer,
   onToggleLock,
   onToggleVisibility,
+  onReorderLayer,
+  onRenameLayer,
   selectedObject,
   onUpdateObject
 }) => {
@@ -133,6 +137,8 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
         {activeTab === TabType.UPLOADS && (
           <UploadsPanel 
             onAddImage={onAddImage}
+            selectedObject={selectedObject}
+            onUpdateObject={onUpdateObject}
           />
         )}
 
@@ -154,6 +160,8 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
             onDeleteLayer={onDeleteLayer}
             onToggleLock={onToggleLock}
             onToggleVisibility={onToggleVisibility}
+            onReorderLayer={onReorderLayer}
+            onRenameLayer={onRenameLayer}
           />
         )}
 

@@ -65,6 +65,7 @@ const App: React.FC = () => {
       strokeUniform: true,
       padding: 20,
       objectCaching: false, // Important for immediate render
+      name: 'Text Layer', // Default name
       ...options
     });
 
@@ -100,6 +101,7 @@ const App: React.FC = () => {
                 cornerSize: 10,
                 padding: 10,
                 objectCaching: false,
+                name: 'Graphic Layer'
             });
 
             // Initial cleanup of SVG colors to ensure they are consistent if needed
@@ -126,7 +128,8 @@ const App: React.FC = () => {
                 transparentCorners: false,
                 cornerSize: 10,
                 padding: 10,
-                objectCaching: false 
+                objectCaching: false,
+                name: 'Image Layer'
             });
             canvasRef.current.add(img);
             canvasRef.current.setActiveObject(img);
@@ -147,7 +150,8 @@ const App: React.FC = () => {
       transparentCorners: false,
       cornerSize: 10,
       padding: 10,
-      objectCaching: false
+      objectCaching: false,
+      name: 'Shape Layer'
     });
 
     const { left, top, scale } = getSafeZoneConfig(path.width || 100, path.height || 100);
@@ -289,6 +293,30 @@ const App: React.FC = () => {
       }
   }
 
+  const handleReorderLayer = (fromIndex: number, toIndex: number) => {
+      if (!canvasRef.current) return;
+      const objects = canvasRef.current.getObjects();
+      const objectToMove = objects[fromIndex];
+      
+      if (objectToMove) {
+          // Use moveTo() for Fabric.js v5 instead of moveObjectTo()
+          canvasRef.current.moveTo(objectToMove, toIndex);
+          canvasRef.current.requestRenderAll();
+          setLayers([...canvasRef.current.getObjects()]);
+      }
+  };
+
+  const handleRenameLayer = (index: number, newName: string) => {
+      if (!canvasRef.current) return;
+      const objects = canvasRef.current.getObjects();
+      const obj = objects[index];
+      if (obj) {
+          obj.set('name', newName);
+          // Force update to reflect name change in state
+          setLayers([...objects]);
+      }
+  };
+
   const handleExport = () => {
     if(!canvasRef.current) return;
     canvasRef.current.discardActiveObject();
@@ -315,6 +343,11 @@ const App: React.FC = () => {
     const handleObjectAdded = (e: any) => {
         if (e.target) {
             e.target.set('objectCaching', false);
+            // Ensure object has a name if not set
+            if(!e.target.name) {
+                const type = e.target.type;
+                e.target.name = type === 'i-text' ? 'Text Layer' : (type === 'image' ? 'Image Layer' : 'Layer');
+            }
         }
         setLayers(canvas.getObjects());
     };
@@ -404,6 +437,8 @@ const App: React.FC = () => {
           onDeleteLayer={handleDeleteLayer}
           onToggleLock={handleToggleLock}
           onToggleVisibility={handleToggleVisibility}
+          onReorderLayer={handleReorderLayer}
+          onRenameLayer={handleRenameLayer}
           selectedObject={selectedObject}
           onUpdateObject={handleUpdateObject}
         />
