@@ -1,14 +1,14 @@
 import React from 'react';
-import { Sparkles, Loader2, Wand2, Plus } from 'lucide-react';
+import { Sparkles, Loader2, Wand2, Layers, Image as ImageIcon, Type } from 'lucide-react';
+import { DesignConcept } from '../../types';
 
 interface AIStudioPanelProps {
   aiPrompt: string;
   setAiPrompt: (val: string) => void;
   isGenerating: boolean;
   handleGenerate: () => void;
-  aiSuggestions: string[];
-  onAddText: (text: string, font: string) => void;
-  activeFont: string;
+  designConcepts: DesignConcept[];
+  onApplyDesign: (concept: DesignConcept) => void;
 }
 
 const AIStudioPanel: React.FC<AIStudioPanelProps> = ({
@@ -16,27 +16,27 @@ const AIStudioPanel: React.FC<AIStudioPanelProps> = ({
   setAiPrompt,
   isGenerating,
   handleGenerate,
-  aiSuggestions,
-  onAddText,
-  activeFont
+  designConcepts,
+  onApplyDesign
 }) => {
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-10">
+      {/* Input Section */}
       <div className="relative overflow-hidden p-1 rounded-2xl bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent border border-white/10">
         <div className="absolute inset-0 bg-noise opacity-20" />
         <div className="bg-black/40 backdrop-blur-sm p-5 rounded-xl relative z-10">
           <h3 className="flex items-center justify-end gap-2 text-primary font-bold mb-3 text-lg">
-            ایده‌پرداز هوشمند
+            طراح هوشمند
             <Sparkles size={18} className="text-primary animate-pulse" />
           </h3>
           <p className="text-xs text-slate-300 mb-5 leading-relaxed opacity-80">
-            حس و حال طرح مورد نظر خود را توصیف کنید تا هوش مصنوعی ما شعارها و مفاهیم جذابی برای شما بسازد.
+            ایده خود را بنویسید (مثلاً: "تایپوگرافی مدرن با تصویر شیر و افکت‌های انتزاعی") تا هوش مصنوعی طرح‌های ترکیبی شامل متن و تصویر برای شما بسازد.
           </p>
           
           <textarea
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
-            placeholder="مثال: طرح نستعلیق مدرن، مینیمال، طبیعت، شعر حافظ..."
+            placeholder="مثال: طرح گرانج، تصویر جمجمه، متن آزادی، رنگ‌های نئونی..."
             className="w-full bg-black/50 border border-white/10 focus:border-primary/50 rounded-xl p-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-primary/20 resize-none h-28 mb-4 transition-all"
           />
           
@@ -47,7 +47,7 @@ const AIStudioPanel: React.FC<AIStudioPanelProps> = ({
           >
             {isGenerating ? <Loader2 className="animate-spin" size={18} /> : (
               <>
-                <span>تولید ایده</span>
+                <span>طراحی کن</span>
                 <Wand2 size={18} className="group-hover:rotate-12 transition-transform" />
               </>
             )}
@@ -55,21 +55,64 @@ const AIStudioPanel: React.FC<AIStudioPanelProps> = ({
         </div>
       </div>
 
-      {aiSuggestions.length > 0 && (
-        <div className="space-y-3 animate-slide-up">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2 block">پیشنهادات هوشمند</label>
-          {aiSuggestions.map((text, idx) => (
-            <div 
-              key={idx}
-              className="p-4 bg-white/5 border border-white/5 hover:border-primary/40 rounded-xl cursor-pointer transition-all duration-300 group hover:bg-white/10 hover:shadow-xl hover:-translate-x-1"
-              onClick={() => onAddText(text, activeFont)}
-            >
-               <div className="flex items-center justify-between">
-                 <Plus size={16} className="text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0" />
-                 <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{text}</p>
-               </div>
-            </div>
-          ))}
+      {/* Results Section */}
+      {designConcepts.length > 0 && (
+        <div className="space-y-4 animate-slide-up">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2 block">
+             مفاهیم پیشنهادی
+          </label>
+          
+          <div className="grid gap-4">
+             {designConcepts.map((concept, idx) => (
+                <div 
+                   key={idx} 
+                   className="group relative bg-white/[0.03] border border-white/5 hover:border-primary/40 rounded-xl p-4 transition-all duration-300 hover:bg-white/[0.05] hover:shadow-xl hover:-translate-y-1"
+                >
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-2">
+                         <div className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/10 font-bold">
+                            کانسپت {idx + 1}
+                         </div>
+                         <h4 className="text-sm font-bold text-white text-right">{concept.title}</h4>
+                    </div>
+                    
+                    {/* Description */}
+                    <p className="text-[11px] text-slate-400 mb-4 text-right leading-relaxed border-b border-white/5 pb-3">
+                        {concept.description}
+                    </p>
+                    
+                    {/* Layers Preview */}
+                    <div className="space-y-2 mb-4">
+                        {concept.elements.map((el, i) => (
+                            <div key={i} className="flex items-center justify-end gap-2 text-[10px] text-slate-500">
+                                {el.type === 'image' ? (
+                                    <>
+                                        <span className="text-slate-300 truncate max-w-[150px] opacity-70 italic">{el.query}</span>
+                                        <ImageIcon size={12} className="text-indigo-400" />
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="font-mono text-slate-600">({el.fontFamily})</span>
+                                        <span className="text-slate-300 truncate max-w-[150px]">{el.content}</span>
+                                        <Type size={12} className="text-emerald-400" />
+                                    </>
+                                )}
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: el.fill }}></div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Apply Button */}
+                    <button 
+                        onClick={() => onApplyDesign(concept)}
+                        className="w-full py-2 bg-white/5 hover:bg-primary hover:text-white border border-white/10 hover:border-primary/50 rounded-lg text-xs font-bold text-slate-300 transition-all flex items-center justify-center gap-2"
+                    >
+                        <span>اجرای طرح روی لباس</span>
+                        <Layers size={14} />
+                    </button>
+                </div>
+             ))}
+          </div>
         </div>
       )}
     </div>

@@ -3,18 +3,7 @@ import {
     Search, Image as ImageIcon, Loader2, AlertCircle, 
     Move, Palette, Droplets, Sliders, Info
 } from 'lucide-react';
-
-// API Configuration
-const PIXABAY_API_KEY = '4170726-8027fcb24a3f4a2292e6578f1';
-const API_URL = 'https://pixabay.com/api/';
-
-interface PixabayImage {
-  id: number;
-  previewURL: string;
-  largeImageURL: string;
-  tags: string;
-  user: string;
-}
+import { searchPixabayImages, PixabayImage } from '../../services/pixabayService';
 
 interface GraphicsPanelProps {
   onAddImage: (url: string) => void;
@@ -93,17 +82,12 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
     }
   }, [isGraphicSelected]);
 
-  const searchImages = useCallback(async (query: string) => {
+  const performSearch = useCallback(async (query: string) => {
     setLoading(true);
     setError('');
     try {
-      const q = query.trim() ? encodeURIComponent(query) : 'vector';
-      const url = `${API_URL}?key=${PIXABAY_API_KEY}&q=${q}&image_type=vector&safesearch=true&per_page=30`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Network response was not ok');
-      const data = await response.json();
-      if (data.hits) setImages(data.hits);
-      else setImages([]);
+      const results = await searchPixabayImages(query);
+      setImages(results);
     } catch (err) {
       console.error(err);
       setError('خطا در دریافت تصاویر. لطفا اتصال اینترنت را بررسی کنید.');
@@ -113,19 +97,19 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
   }, []);
 
   useEffect(() => {
-    if (images.length === 0) searchImages('');
-  }, [searchImages, images.length]);
+    if (images.length === 0) performSearch('');
+  }, [performSearch, images.length]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    searchImages(searchQuery);
+    performSearch(searchQuery);
     setSelectedCategory('');
   };
 
   const handleCategoryClick = (cat: typeof CATEGORIES[0]) => {
     setSelectedCategory(cat.id);
     setSearchQuery(''); 
-    searchImages(cat.query);
+    performSearch(cat.query);
   };
 
   // --- Handlers ---
@@ -190,8 +174,6 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
   const rotation = isGraphicSelected ? Math.round(selectedObject.angle || 0) : 0;
   
   // Determines current color. We default to #000000 if not found.
-  // We check 'fill' first. For images, we can check tint or filters manually in a real app,
-  // but for this UI we assume the last selected color in palette or black.
   const currentColor = isGraphicSelected ? (selectedObject.fill || '#000000') : '#000000';
   
   const hasStroke = isGraphicSelected && selectedObject.strokeWidth > 0;
@@ -291,7 +273,7 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
                   <div className="p-3 bg-white/5 flex items-center gap-2 text-xs font-bold text-slate-300 border-b border-white/5"><Droplets size={14} className="text-cyan-500" />افکت‌ها</div>
                   <div className="p-4 space-y-5">
                         
-                        {/* Stroke Control - RESTORED & ENHANCED */}
+                        {/* Stroke Control */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">

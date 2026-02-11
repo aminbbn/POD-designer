@@ -46,6 +46,27 @@ export interface DesignLayer {
   fabricObject?: any;
 }
 
+export interface DesignElement {
+  type: 'text' | 'image';
+  yOffset: number; // Offset from vertical center
+  
+  // Text specific
+  content?: string;
+  fontFamily?: string;
+  fill?: string;
+  fontSize?: number;
+  fontWeight?: string;
+
+  // Image specific
+  query?: string; // Search term for Pixabay
+}
+
+export interface DesignConcept {
+  title: string;
+  description: string;
+  elements: DesignElement[];
+}
+
 declare global {
   interface Window {
     fabric: any;

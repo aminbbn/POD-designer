@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { TabType, Product, ProductColor } from '../types';
+import { TabType, Product, ProductColor, DesignConcept } from '../types';
 import { FONTS } from '../constants';
-import { generateDesignIdeas } from '../services/geminiService';
+import { generateDesignConcepts } from '../services/geminiService';
+import { searchPixabayImages } from '../services/pixabayService';
 
 // Import New Sub-Panels
 import ProductsPanel from './panels/ProductsPanel';
@@ -20,7 +21,7 @@ interface ToolsPanelProps {
   onProductChange: (product: Product) => void;
   onColorChange: (color: ProductColor) => void;
   onAddText: (text: string, font: string, options?: any) => void;
-  onAddImage: (url: string) => void;
+  onAddImage: (url: string, options?: any) => void;
   onAddGraphic: (pathData: string) => void;
   isGenerating: boolean;
   setIsGenerating: (val: boolean) => void;
@@ -32,6 +33,8 @@ interface ToolsPanelProps {
   onRenameLayer: (index: number, newName: string) => void;
   selectedObject: any;
   onUpdateObject: (key: string, value: any) => void;
+  settings: any;
+  onUpdateSettings: (key: string, value: any) => void;
 }
 
 const ToolsPanel: React.FC<ToolsPanelProps> = ({
@@ -53,10 +56,12 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
   onReorderLayer,
   onRenameLayer,
   selectedObject,
-  onUpdateObject
+  onUpdateObject,
+  settings,
+  onUpdateSettings
 }) => {
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [designConcepts, setDesignConcepts] = useState<DesignConcept[]>([]);
   const [activeFont, setActiveFont] = useState(FONTS[0]);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -70,12 +75,63 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
   const handleGenerate = async () => {
     if (!aiPrompt.trim()) return;
     setIsGenerating(true);
+    setDesignConcepts([]); // Clear previous
     try {
-      const suggestions = await generateDesignIdeas(aiPrompt, currentProduct.name);
-      setAiSuggestions(suggestions);
+      const concepts = await generateDesignConcepts(aiPrompt, currentProduct.name);
+      setDesignConcepts(concepts);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleApplyDesign = async (concept: DesignConcept) => {
+      const printArea = currentProduct.views[0].printArea;
+      const centerY = printArea.top + (printArea.height / 2);
+
+      for (const el of concept.elements) {
+          const topPosition = centerY + el.yOffset;
+
+          if (el.type === 'text' && el.content) {
+              onAddText(el.content, el.fontFamily || activeFont, {
+                  fill: el.fill,
+                  fontSize: el.fontSize,
+                  fontWeight: el.fontWeight,
+                  top: topPosition
+              });
+          } else if (el.type === 'image' && el.query) {
+              // Search for the image on Pixabay
+              try {
+                  let images = await searchPixabayImages(el.query);
+                  
+                  // Fallback 1: If no exact match, try just the last word (usually the noun)
+                  if (images.length === 0 && el.query.includes(' ')) {
+                      const simplified = el.query.split(' ').pop();
+                      if (simplified) {
+                          images = await searchPixabayImages(simplified);
+                      }
+                  }
+
+                  // Fallback 2: If still nothing, try a generic relevant term or shapes
+                  if (images.length === 0) {
+                      images = await searchPixabayImages('abstract shapes');
+                  }
+
+                  if (images.length > 0) {
+                      // Pick a random image from the top 10 to vary designs slightly
+                      const randomIndex = Math.floor(Math.random() * Math.min(10, images.length));
+                      const image = images[randomIndex];
+                      const imageUrl = image.largeImageURL || image.previewURL;
+
+                      onAddImage(imageUrl, {
+                          top: topPosition,
+                          fill: el.fill // Pass fill intention (handled by app for SVGs or filters)
+                      });
+                  }
+              } catch (error) {
+                  console.error("Failed to load AI image element:", error);
+              }
+          }
+      }
   };
 
   return (
@@ -148,9 +204,8 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
             setAiPrompt={setAiPrompt}
             isGenerating={isGenerating}
             handleGenerate={handleGenerate}
-            aiSuggestions={aiSuggestions}
-            onAddText={onAddText}
-            activeFont={activeFont}
+            designConcepts={designConcepts}
+            onApplyDesign={handleApplyDesign}
           />
         )}
 
@@ -166,7 +221,10 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
         )}
 
         {activeTab === TabType.SETTINGS && (
-          <SettingsPanel />
+          <SettingsPanel 
+            settings={settings}
+            onUpdateSettings={onUpdateSettings}
+          />
         )}
 
       </div>

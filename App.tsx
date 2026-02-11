@@ -13,8 +13,33 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [layers, setLayers] = useState<any[]>([]);
   const [selectedObject, setSelectedObject] = useState<any>(null);
+  
+  // --- New Settings State ---
+  const [canvasSettings, setCanvasSettings] = useState({
+    showGrid: true,
+    showSafeZone: true,
+    snapRotation: false,
+    darkMode: true
+  });
 
   const canvasRef = useRef<any>(null); // Fabric canvas reference
+
+  // Update Settings Handler
+  const handleUpdateSettings = (key: string, value: any) => {
+    setCanvasSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  // React to Snap Rotation Change
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const snapAngle = canvasSettings.snapRotation ? 45 : undefined;
+    
+    // Update existing objects
+    canvasRef.current.getObjects().forEach((obj: any) => {
+        obj.snapAngle = snapAngle;
+    });
+    canvasRef.current.requestRenderAll();
+  }, [canvasSettings.snapRotation]);
 
   // --- Canvas Actions ---
 
@@ -66,6 +91,7 @@ const App: React.FC = () => {
       padding: 20,
       objectCaching: false, // Important for immediate render
       name: 'Text Layer', // Default name
+      snapAngle: canvasSettings.snapRotation ? 45 : undefined, // Apply snap setting
       ...options
     });
 
@@ -73,24 +99,28 @@ const App: React.FC = () => {
     canvasRef.current.setActiveObject(textBox);
   };
 
-  const handleAddImage = (url: string) => {
+  const handleAddImage = (url: string, options: any = {}) => {
      if (!canvasRef.current || !window.fabric) return;
 
      // Check if it's an SVG (either by extension or Data URL mimetype)
      const isSvg = url.endsWith('.svg') || url.includes('image/svg+xml');
 
      if (isSvg) {
-        window.fabric.loadSVGFromURL(url, (objects: any[], options: any) => {
+        window.fabric.loadSVGFromURL(url, (objects: any[], svgOptions: any) => {
             if (!objects || objects.length === 0) return;
             
             // Group the SVG objects
-            const svgGroup = window.fabric.util.groupSVGElements(objects, options);
+            const svgGroup = window.fabric.util.groupSVGElements(objects, svgOptions);
             
             const { left, top, scale } = getSafeZoneConfig(svgGroup.width || 100, svgGroup.height || 100);
+            
+            // Use provided position or default safe zone position
+            const finalLeft = options.left !== undefined ? options.left : left;
+            const finalTop = options.top !== undefined ? options.top : top;
 
             svgGroup.set({
-                left: left,
-                top: top,
+                left: finalLeft,
+                top: finalTop,
                 scaleX: scale,
                 scaleY: scale,
                 originX: 'center',
@@ -101,7 +131,9 @@ const App: React.FC = () => {
                 cornerSize: 10,
                 padding: 10,
                 objectCaching: false,
-                name: 'Graphic Layer'
+                name: 'Graphic Layer',
+                snapAngle: canvasSettings.snapRotation ? 45 : undefined,
+                ...options
             });
 
             // Initial cleanup of SVG colors to ensure they are consistent if needed
@@ -115,10 +147,13 @@ const App: React.FC = () => {
         // Handle Raster Images (PNG, JPG)
         window.fabric.Image.fromURL(url, (img: any) => {
             const { left, top, scale } = getSafeZoneConfig(img.width, img.height);
+            
+            const finalLeft = options.left !== undefined ? options.left : left;
+            const finalTop = options.top !== undefined ? options.top : top;
 
             img.set({
-                left: left,
-                top: top,
+                left: finalLeft,
+                top: finalTop,
                 scaleX: scale,
                 scaleY: scale,
                 originX: 'center',
@@ -129,7 +164,9 @@ const App: React.FC = () => {
                 cornerSize: 10,
                 padding: 10,
                 objectCaching: false,
-                name: 'Image Layer'
+                name: 'Image Layer',
+                snapAngle: canvasSettings.snapRotation ? 45 : undefined,
+                ...options
             });
             canvasRef.current.add(img);
             canvasRef.current.setActiveObject(img);
@@ -151,7 +188,8 @@ const App: React.FC = () => {
       cornerSize: 10,
       padding: 10,
       objectCaching: false,
-      name: 'Shape Layer'
+      name: 'Shape Layer',
+      snapAngle: canvasSettings.snapRotation ? 45 : undefined
     });
 
     const { left, top, scale } = getSafeZoneConfig(path.width || 100, path.height || 100);
@@ -343,6 +381,9 @@ const App: React.FC = () => {
     const handleObjectAdded = (e: any) => {
         if (e.target) {
             e.target.set('objectCaching', false);
+            // Apply current snap setting to new objects
+            e.target.snapAngle = canvasSettings.snapRotation ? 45 : undefined;
+            
             // Ensure object has a name if not set
             if(!e.target.name) {
                 const type = e.target.type;
@@ -384,7 +425,7 @@ const App: React.FC = () => {
         canvas.off('selection:updated', updateLayers);
         canvas.off('selection:cleared', handleSelectionCleared);
     };
-  }, []);
+  }, [canvasSettings.snapRotation]); // Re-bind if snap settings change logic requires it (though we handle updates in separate useEffect)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -411,7 +452,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-background text-white font-sans selection:bg-primary/30">
+    <div className={`flex flex-col h-screen bg-background text-white font-sans selection:bg-primary/30`}>
       <TopBar 
         onUndo={() => {}} 
         onRedo={() => {}} 
@@ -441,6 +482,8 @@ const App: React.FC = () => {
           onRenameLayer={handleRenameLayer}
           selectedObject={selectedObject}
           onUpdateObject={handleUpdateObject}
+          settings={canvasSettings}
+          onUpdateSettings={handleUpdateSettings}
         />
         
         <CanvasArea 
@@ -450,6 +493,7 @@ const App: React.FC = () => {
           onSelectionCleared={() => setSelectedObject(null)}
           onObjectSelected={setSelectedObject}
           setLayers={setLayers}
+          settings={canvasSettings}
         />
       </div>
     </div>

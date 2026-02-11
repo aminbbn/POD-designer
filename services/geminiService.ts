@@ -1,31 +1,78 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
+import { DesignConcept } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const generateDesignIdeas = async (prompt: string, productType: string): Promise<string[]> => {
+export const generateDesignConcepts = async (prompt: string, productType: string): Promise<DesignConcept[]> => {
   try {
-    const fullPrompt = `
-      You are a creative director for a streetwear fashion brand in Iran.
-      The user wants design ideas for a ${productType}.
-      Theme/Keywords: "${prompt}".
-      
-      Provide 3 short, catchy, and creative slogans or design concepts in Persian (Farsi).
-      Keep them under 10 words each.
-      Format: Just the slogans, one per line. No numbering.
-    `;
-
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: fullPrompt,
+      contents: `
+        You are a smart creative director for a T-Shirt printing business. 
+        Create 3 distinct, printable design concepts based on the user's theme: "${prompt}".
+        Product Context: ${productType}.
+        
+        For each concept, provide:
+        1. A catchy Title.
+        2. A short Description.
+        3. A list of Elements (Text and Images).
+
+        CRITICAL IMAGE SEARCH RULES (The search engine is limited):
+        - The 'query' field for images MUST be extremely simple.
+        - Use ONLY 1 single noun if possible (e.g., "lion", "skull", "flower", "car").
+        - Maximum 2 words (e.g., "palm tree", "geometric wolf").
+        - NEVER use adjectives like "detailed", "realistic", "neon", "vintage" in the query.
+        - NEVER use complex phrases like "cat driving a car". Just search for "cat".
+        
+        Text Rules:
+        - If the prompt is in Persian/Arabic, use Persian text content.
+        - Fonts: ['Vazirmatn', 'Montserrat', 'Oswald', 'Playfair Display', 'Dancing Script', 'Morabba', 'IranSansX'].
+        
+        Layout Rules:
+        - yOffset: Distance from center (-150 to +150).
+        - Use contrasting colors.
+      `,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              elements: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    type: { type: Type.STRING, enum: ['text', 'image'] },
+                    // Text Properties
+                    content: { type: Type.STRING },
+                    fontFamily: { type: Type.STRING },
+                    fontSize: { type: Type.NUMBER },
+                    fontWeight: { type: Type.STRING },
+                    // Image Properties
+                    query: { type: Type.STRING },
+                    // Common
+                    fill: { type: Type.STRING },
+                    yOffset: { type: Type.NUMBER }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     });
-    
+
     if (response.text) {
-      return response.text.split('\n').filter(line => line.trim().length > 0);
+      return JSON.parse(response.text) as DesignConcept[];
     }
     return [];
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return ["خطا در تولید ایده. دوباره تلاش کنید."];
+    return [];
   }
 };
 

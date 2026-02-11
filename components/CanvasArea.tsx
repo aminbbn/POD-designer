@@ -202,6 +202,7 @@ interface CanvasAreaProps {
   onSelectionCleared: () => void;
   onObjectSelected: (obj: any) => void;
   setLayers: (layers: any[]) => void;
+  settings: any;
 }
 
 const CanvasArea: React.FC<CanvasAreaProps> = ({ 
@@ -210,7 +211,8 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
   currentProductColor,
   onSelectionCleared,
   onObjectSelected,
-  setLayers
+  setLayers,
+  settings
 }) => {
   const [zoom, setZoom] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -246,7 +248,7 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="flex-1 bg-background relative flex items-center justify-center overflow-hidden workspace-grid">
+    <div ref={containerRef} className={`flex-1 bg-background relative flex items-center justify-center overflow-hidden ${settings.showGrid ? 'workspace-grid' : ''}`}>
        {/* Product Display Container - Base Size (500x600) */}
        <div 
          className="relative transition-all duration-300 animate-fade-in z-10 origin-center shadow-2xl"
@@ -261,7 +263,7 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
          
          {/* Layer 2: Printable Area Guides - Uses Base Coordinates */}
          <div 
-            className="absolute z-10 pointer-events-none transition-all duration-300"
+            className={`absolute z-10 pointer-events-none transition-all duration-300 ${settings.showSafeZone ? 'opacity-100' : 'opacity-0'}`}
             style={{
                 top: currentView.printArea.top,
                 left: currentView.printArea.left,
