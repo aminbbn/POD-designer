@@ -82,7 +82,6 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
   const [error, setError] = useState('');
 
   // Determine selection type
-  // 'group' is often used for SVGs loaded from URL
   const isGraphicSelected = selectedObject && (selectedObject.type === 'image' || selectedObject.type === 'path' || selectedObject.type === 'group');
   const isImage = selectedObject && selectedObject.type === 'image';
 
@@ -134,14 +133,10 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
   const handleColorChange = (key: 'fill' | 'stroke', color: string) => {
       if (!isGraphicSelected) return;
       
+      // We always send 'fill' for the main color. 
+      // The App.tsx logic will handle whether to apply it as a Filter (for images) or Fill (for vectors)
       if (key === 'fill') {
-        if (isImage) {
-            // For PNG Images, 'tint' property overlays color on non-transparent pixels.
-            onUpdateObject('tint', color || '');
-        } else {
-            // For Paths (SVG) or Groups, 'fill' changes the vector color.
-            onUpdateObject('fill', color);
-        }
+        onUpdateObject('fill', color);
       } else {
          onUpdateObject(key, color);
       }
@@ -194,9 +189,10 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
   const scaleX = isGraphicSelected ? Math.round((selectedObject.scaleX || 1) * 100) : 100;
   const rotation = isGraphicSelected ? Math.round(selectedObject.angle || 0) : 0;
   
-  // Determines current color based on object type
-  // For Groups/Paths -> fill, For Images -> tint
-  const currentColor = isGraphicSelected ? (isImage ? selectedObject.tint : selectedObject.fill) : '#000000';
+  // Determines current color. We default to #000000 if not found.
+  // We check 'fill' first. For images, we can check tint or filters manually in a real app,
+  // but for this UI we assume the last selected color in palette or black.
+  const currentColor = isGraphicSelected ? (selectedObject.fill || '#000000') : '#000000';
   
   const hasStroke = isGraphicSelected && selectedObject.strokeWidth > 0;
   const hasShadow = isGraphicSelected && !!selectedObject.shadow;
@@ -266,9 +262,12 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
                   </div>
               </div>
 
-              {/* 2. Color/Tint */}
+              {/* 2. Color/Fill (Unified) */}
               <div className="bg-white/[0.03] rounded-xl border border-white/5 overflow-hidden">
-                  <div className="p-3 bg-white/5 flex items-center gap-2 text-xs font-bold text-slate-300 border-b border-white/5"><Palette size={14} className="text-pink-500" />{isImage ? 'پوشش رنگ (Tint)' : 'رنگ (Fill)'}</div>
+                  <div className="p-3 bg-white/5 flex items-center gap-2 text-xs font-bold text-slate-300 border-b border-white/5">
+                      <Palette size={14} className="text-pink-500" />
+                      {isImage ? 'رنگ آمیزی (Tint Filter)' : 'رنگ (Fill)'}
+                  </div>
                   <div className="p-4">
                         <div className="flex flex-wrap gap-2">
                             <button onClick={() => handleColorChange('fill', '')} className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center bg-white/5 hover:bg-white/10 text-slate-500 text-[10px] transition-all hover:scale-110" title="حذف رنگ">X</button>
@@ -279,7 +278,11 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
                                 <input type="color" className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" value={typeof currentColor === 'string' && currentColor ? currentColor : '#000000'} onChange={(e) => handleColorChange('fill', e.target.value)} />
                             </label>
                         </div>
-                        {isImage && <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">نکته: پوشش رنگ (Tint) روی تصاویر PNG و عکس‌ها اعمال می‌شود.</p>}
+                        <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                            {isImage 
+                              ? 'برای تصاویر، ما از فیلتر پیشرفته رنگ استفاده می‌کنیم تا طرح شما را کاملا رنگ‌آمیزی کنیم.' 
+                              : 'رنگ انتخاب شده روی تمام اجزای برداری طرح اعمال می‌شود.'}
+                        </p>
                   </div>
               </div>
 
@@ -315,7 +318,7 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
                                         <div className="flex gap-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                                             <Info size={14} className="text-yellow-500 shrink-0 mt-0.5" />
                                             <p className="text-[10px] text-yellow-200/80 leading-tight">
-                                                برای تصاویر (PNG/JPG)، حاشیه به دور کادر مستطیلی اعمال می‌شود. برای حاشیه دور طرح، از فایل SVG استفاده کنید.
+                                                برای تصاویر (PNG/JPG)، حاشیه به دور کادر مستطیلی اعمال می‌شود.
                                             </p>
                                         </div>
                                     )}

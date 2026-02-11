@@ -100,11 +100,10 @@ const App: React.FC = () => {
                 cornerSize: 10,
                 padding: 10,
                 objectCaching: false,
-                fill: objects[0].fill || '#000000' // Try to inherit fill or default
             });
 
-            // Ensure all internal paths inherit properties if needed, or are adjustable
-            // This enables "Fill" color to work on the whole group if we target it
+            // Initial cleanup of SVG colors to ensure they are consistent if needed
+            // But we leave them as is until user changes color
             
             canvasRef.current.add(svgGroup);
             canvasRef.current.setActiveObject(svgGroup);
@@ -164,29 +163,79 @@ const App: React.FC = () => {
     canvasRef.current.setActiveObject(path);
   };
 
+  // --- Advanced Color Application Logic ---
+  const applyColorToLayer = (obj: any, color: string) => {
+      if (!obj) return;
+      
+      // 1. Recursively Handle Groups (SVGs)
+      // This ensures that every single path inside a complex SVG gets the color
+      if (obj.type === 'group' && obj._objects) {
+          obj._objects.forEach((child: any) => applyColorToLayer(child, color));
+          // We also set the group's own fill to keep state consistent, 
+          // though visual change happens in children
+          obj.set('fill', color);
+          return;
+      }
+
+      // 2. Handle Raster Images (PNGs/JPGs)
+      // Instead of using simple 'tint', we use a BlendColor Filter.
+      // This is more powerful and works better for "Filling" graphics.
+      if (obj.type === 'image') {
+          // Remove any existing BlendColor filters to avoid stacking
+          obj.filters = (obj.filters || []).filter((f: any) => f.type !== 'BlendColor');
+          
+          if (color) {
+              const blendFilter = new window.fabric.Image.filters.BlendColor({
+                  color: color,
+                  mode: 'tint', // 'tint' acts as multiply/overlay depending on alpha
+                  alpha: 1
+              });
+              obj.filters.push(blendFilter);
+              obj.applyFilters();
+          } else {
+              obj.applyFilters();
+          }
+          
+          // Also set the 'tint' property to null to ensure no conflict, 
+          // or set it if we want a fallback. We rely on filters here.
+          obj.set('tint', null);
+          return;
+      }
+
+      // 3. Handle Standard Vector Paths/Shapes
+      // Apply color to Fill. 
+      // If the object has a stroke that isn't transparent, we color that too 
+      // to ensure a "Complete Fill" effect if it's a line-art icon.
+      obj.set('fill', color);
+      
+      // Intelligent Stroke Coloring: Only if stroke exists and has width
+      if (obj.stroke && obj.stroke !== 'transparent' && obj.strokeWidth > 0) {
+          obj.set('stroke', color);
+      }
+  };
+
   const handleUpdateObject = (key: string, value: any) => {
     if (!canvasRef.current || !selectedObject) return;
     
-    // Special handling for shadow
-    if (key === 'shadow') {
+    // Special handling for COLOR updates (Fill/Tint)
+    if (key === 'fill' || key === 'tint') {
+        // Use our robust recursive color applicator
+        applyColorToLayer(selectedObject, value);
+    } 
+    // Special handling for SHADOW
+    else if (key === 'shadow') {
         if (value === null) {
             selectedObject.set('shadow', null);
         } else if (typeof value === 'object') {
             selectedObject.set('shadow', new window.fabric.Shadow(value));
         }
-    } else if (key === 'fill' && selectedObject.type === 'group') {
-        // If it's an SVG group, we might need to update all child paths to change color effectively
-        // or just set fill on the group if the paths use 'currentColor' or undefined.
-        // But usually, iterating is safer for complex SVGs to force single color.
-        selectedObject.set('fill', value);
-        selectedObject._objects?.forEach((obj: any) => {
-             obj.set('fill', value);
-        });
-    } else {
+    } 
+    // Standard Update
+    else {
         selectedObject.set(key, value);
     }
     
-    // CRITICAL: Disable caching and mark dirty to ensure visual updates (tint, stroke, fill) happen instantly
+    // CRITICAL: Force refresh and disable caching to see changes immediately
     selectedObject.set({
         objectCaching: false,
         dirty: true
