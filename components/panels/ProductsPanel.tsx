@@ -95,31 +95,52 @@ const ProductsPanel: React.FC<ProductsPanelProps> = ({
         ))}
       </div>
 
-      {/* Colors Section */}
-      <div className="space-y-4 pt-4 border-t border-white/5">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">{currentProductColor.name}</span>
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">پالت رنگ</label>
-        </div>
+      {/* Colors & Sizes Section */}
+      <div className="space-y-6 pt-4 border-t border-white/5">
         
-        <div className="flex flex-wrap justify-end gap-3">
-          {currentProduct.colors.map(color => (
-            <button
-              key={color.id}
-              onClick={() => onColorChange(color)}
-              className={`
-                group relative w-9 h-9 rounded-full transition-all duration-300 ease-out flex items-center justify-center
-                ${currentProductColor.id === color.id ? 'scale-110 shadow-[0_0_15px_-3px_rgba(59,130,246,0.5)]' : 'hover:scale-105 opacity-80 hover:opacity-100'}
-              `}
-            >
-              <div className={`absolute inset-0 rounded-full border-2 transition-all duration-500 ${currentProductColor.id === color.id ? 'border-primary opacity-100 scale-125' : 'border-white/20 opacity-0 scale-100 group-hover:opacity-100 group-hover:scale-110'}`} />
-              <div 
-                className="w-full h-full rounded-full shadow-inner border border-white/10 ring-1 ring-black/20"
-                style={{ backgroundColor: color.hex }}
-              />
-            </button>
-          ))}
+        {/* Colors */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">{currentProductColor.name}</span>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">پالت رنگ</label>
+          </div>
+          
+          <div className="flex flex-wrap justify-end gap-3">
+            {currentProduct.colors.map(color => (
+              <button
+                key={color.id}
+                onClick={() => onColorChange(color)}
+                className={`
+                  group relative w-9 h-9 rounded-full transition-all duration-300 ease-out flex items-center justify-center
+                  ${currentProductColor.id === color.id ? 'scale-110 shadow-[0_0_15px_-3px_rgba(59,130,246,0.5)]' : 'hover:scale-105 opacity-80 hover:opacity-100'}
+                `}
+              >
+                <div className={`absolute inset-0 rounded-full border-2 transition-all duration-500 ${currentProductColor.id === color.id ? 'border-primary opacity-100 scale-125' : 'border-white/20 opacity-0 scale-100 group-hover:opacity-100 group-hover:scale-110'}`} />
+                <div 
+                  className="w-full h-full rounded-full shadow-inner border border-white/10 ring-1 ring-black/20"
+                  style={{ backgroundColor: color.hex }}
+                />
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Sizes */}
+        {currentProduct.sizes && currentProduct.sizes.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-end">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">سایزهای موجود</label>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              {currentProduct.sizes.map(size => (
+                <div key={size} className="px-3 py-1 bg-white/5 border border-white/10 rounded text-[10px] font-mono text-zinc-400">
+                  {size}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

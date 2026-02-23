@@ -11,9 +11,10 @@ export enum TabType {
 export interface Product {
   id: string;
   name: string;
+  type: string;
   colors: ProductColor[];
+  sizes: string[];
   views: ProductView[];
-  price: number;
 }
 
 export interface ProductColor {

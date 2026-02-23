@@ -15,7 +15,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'tshirt-classic',
     name: 'تی‌شرت نخی کلاسیک',
-    price: 24.99,
+    type: 'تی‌شرت',
+    sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     colors: [
       { id: 'black', name: 'مشکی', hex: '#18181b' }, // Zinc-900 (Matches surface)
       { id: 'white', name: 'سفید', hex: '#ffffff' },
@@ -46,7 +47,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'hoodie-premium',
     name: 'هودی ممتاز',
-    price: 49.99,
+    type: 'هودی',
+    sizes: ['M', 'L', 'XL', 'XXL'],
     colors: [
       { id: 'black', name: 'مشکی', hex: '#18181b' },
       { id: 'maroon', name: 'زرشکی', hex: '#450a0a' },

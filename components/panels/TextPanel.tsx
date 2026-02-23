@@ -411,7 +411,7 @@ const TextPanel: React.FC<TextPanelProps> = ({
                       </button>
                       <button 
                           onClick={() => { setFillType('gradient'); applyGradient(gradientState.start, gradientState.end, gradientState.angle); }}
-                          className={`flex-1 py-1.5 text-[10px] rounded-md transition-all flex items-center justify-center gap-2 ${fillType === 'gradient' ? 'bg-gradient-to-r from-rose-500 to-purple-500 text-white shadow-sm' : 'text-slate-500 hover:bg-white/5'}`}
+                          className={`flex-1 py-1.5 text-[10px] rounded-md transition-all flex items-center justify-center gap-2 ${fillType === 'gradient' ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-sm' : 'text-slate-500 hover:bg-white/5'}`}
                       >
                           <PaintBucket size={12} />
                           گرادینت
@@ -477,7 +477,7 @@ const TextPanel: React.FC<TextPanelProps> = ({
                                   max="360" 
                                   value={gradientState.angle} 
                                   onChange={(e) => updateGradientState('angle', parseInt(e.target.value))} 
-                                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:rounded-full" 
+                                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full" 
                               />
                           </div>
 

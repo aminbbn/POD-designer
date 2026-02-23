@@ -5,9 +5,10 @@ import { TabType } from '../types';
 interface SidebarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
+  onUserClick: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onUserClick }) => {
   const tabs = [
     { id: TabType.PRODUCTS, icon: Shirt, label: 'محصولات' },
     { id: TabType.TEXT, icon: Type, label: 'متن' },
@@ -42,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                   absolute inset-0 rounded-2xl transition-all duration-500
                   ${isActive 
                     ? isSpecial 
-                        ? 'bg-gradient-to-b from-purple-500/20 to-indigo-600/10 border border-purple-500/30 shadow-[0_0_20px_-5px_rgba(168,85,247,0.3)] opacity-100'
+                        ? 'bg-gradient-to-b from-primary/20 to-secondary/10 border border-primary/30 shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)] opacity-100'
                         : 'bg-gradient-to-b from-blue-500/20 to-cyan-500/10 border border-blue-500/30 shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)] opacity-100' 
                     : 'bg-transparent border border-transparent opacity-0 group-hover:bg-white/[0.03] group-hover:border-white/[0.05]'
                   }
@@ -54,7 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                 relative z-10 transition-all duration-500
                 ${isActive 
                     ? isSpecial 
-                        ? 'text-purple-300 drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]' 
+                        ? 'text-primary drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]' 
                         : 'text-blue-300 drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]'
                     : 'text-zinc-400 group-hover:text-zinc-200'
                 }
@@ -80,7 +81,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
 
       {/* User Profile Action */}
       <div className="mt-auto pt-4 pb-2 w-full px-4 border-t border-white/5">
-         <button className="w-full aspect-square rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all duration-300 group overflow-hidden relative">
+         <button 
+            onClick={onUserClick}
+            className="w-full aspect-square rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 hover:border-white/20 transition-all duration-300 group overflow-hidden relative"
+         >
             <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <User size={20} className="group-hover:scale-110 transition-transform relative z-10" />
          </button>

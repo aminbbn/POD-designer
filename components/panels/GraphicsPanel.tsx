@@ -247,7 +247,7 @@ const GraphicsPanel: React.FC<GraphicsPanelProps> = ({
               {/* 2. Color/Fill (Unified) */}
               <div className="bg-white/[0.03] rounded-xl border border-white/5 overflow-hidden">
                   <div className="p-3 bg-white/5 flex items-center gap-2 text-xs font-bold text-slate-300 border-b border-white/5">
-                      <Palette size={14} className="text-pink-500" />
+                      <Palette size={14} className="text-secondary" />
                       {isImage ? 'رنگ آمیزی (Tint Filter)' : 'رنگ (Fill)'}
                   </div>
                   <div className="p-4">

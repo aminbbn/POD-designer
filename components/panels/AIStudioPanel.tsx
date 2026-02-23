@@ -22,7 +22,7 @@ const AIStudioPanel: React.FC<AIStudioPanelProps> = ({
   return (
     <div className="space-y-6 animate-fade-in pb-10">
       {/* Input Section */}
-      <div className="relative overflow-hidden p-1 rounded-2xl bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent border border-white/10">
+      <div className="relative overflow-hidden p-1 rounded-2xl bg-gradient-to-br from-primary/20 via-secondary/10 to-transparent border border-white/10">
         <div className="absolute inset-0 bg-noise opacity-20" />
         <div className="bg-black/40 backdrop-blur-sm p-5 rounded-xl relative z-10">
           <h3 className="flex items-center justify-end gap-2 text-primary font-bold mb-3 text-lg">

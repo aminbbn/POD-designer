@@ -3,13 +3,19 @@ import TopBar from './components/TopBar';
 import Sidebar from './components/Sidebar';
 import ToolsPanel from './components/ToolsPanel';
 import CanvasArea from './components/CanvasArea';
+import LoginPage from './components/admin/LoginPage';
+import AdminDashboard from './components/admin/AdminDashboard';
 import { TabType, Product, ProductColor } from './types';
 import { PRODUCTS } from './constants';
 
+type ViewMode = 'editor' | 'login' | 'admin';
+
 const App: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [activeTab, setActiveTab] = useState<TabType>(TabType.PRODUCTS);
-  const [currentProduct, setCurrentProduct] = useState<Product>(PRODUCTS[0]);
-  const [currentProductColor, setCurrentProductColor] = useState<ProductColor>(PRODUCTS[0].colors[0]);
+  const [viewMode, setViewMode] = useState<ViewMode>('editor');
+  const [currentProduct, setCurrentProduct] = useState<Product>(products[0]);
+  const [currentProductColor, setCurrentProductColor] = useState<ProductColor>(products[0].colors[0]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [layers, setLayers] = useState<any[]>([]);
   const [selectedObject, setSelectedObject] = useState<any>(null);
@@ -453,49 +459,74 @@ const App: React.FC = () => {
 
   return (
     <div className={`flex flex-col h-screen bg-background text-white font-sans selection:bg-primary/30`}>
-      <TopBar 
-        onUndo={() => {}} 
-        onRedo={() => {}} 
-        onExport={handleExport}
-      />
       
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        
-        <ToolsPanel 
-          activeTab={activeTab}
-          products={PRODUCTS}
-          currentProduct={currentProduct}
-          currentProductColor={currentProductColor}
-          onProductChange={(p) => { setCurrentProduct(p); setCurrentProductColor(p.colors[0]); }}
-          onColorChange={setCurrentProductColor}
-          onAddText={handleAddText}
-          onAddImage={handleAddImage}
-          onAddGraphic={handleAddGraphic}
-          isGenerating={isGenerating}
-          setIsGenerating={setIsGenerating}
-          layers={layers}
-          onDeleteLayer={handleDeleteLayer}
-          onToggleLock={handleToggleLock}
-          onToggleVisibility={handleToggleVisibility}
-          onReorderLayer={handleReorderLayer}
-          onRenameLayer={handleRenameLayer}
-          selectedObject={selectedObject}
-          onUpdateObject={handleUpdateObject}
-          settings={canvasSettings}
-          onUpdateSettings={handleUpdateSettings}
+      {/* Admin Views */}
+      {viewMode === 'login' && (
+        <LoginPage 
+          onLoginSuccess={() => setViewMode('admin')} 
+          onClose={() => setViewMode('editor')} 
         />
-        
-        <CanvasArea 
-          canvasRef={canvasRef}
-          currentView={currentProduct.views[0]}
-          currentProductColor={currentProductColor.hex}
-          onSelectionCleared={() => setSelectedObject(null)}
-          onObjectSelected={setSelectedObject}
-          setLayers={setLayers}
-          settings={canvasSettings}
+      )}
+
+      {viewMode === 'admin' ? (
+        <AdminDashboard 
+          onLogout={() => setViewMode('login')} 
+          onBackToEditor={() => setViewMode('editor')} 
+          products={products}
+          setProducts={setProducts}
         />
-      </div>
+      ) : (
+        /* Editor View */
+        <>
+          <TopBar 
+            onUndo={() => {}} 
+            onRedo={() => {}} 
+            onExport={handleExport}
+          />
+          
+          <div className="flex flex-1 overflow-hidden">
+            <Sidebar 
+              activeTab={activeTab} 
+              setActiveTab={setActiveTab} 
+              onUserClick={() => setViewMode('login')}
+            />
+            
+            <ToolsPanel 
+              activeTab={activeTab}
+              products={products}
+              currentProduct={currentProduct}
+              currentProductColor={currentProductColor}
+              onProductChange={(p) => { setCurrentProduct(p); setCurrentProductColor(p.colors[0]); }}
+              onColorChange={setCurrentProductColor}
+              onAddText={handleAddText}
+              onAddImage={handleAddImage}
+              onAddGraphic={handleAddGraphic}
+              isGenerating={isGenerating}
+              setIsGenerating={setIsGenerating}
+              layers={layers}
+              onDeleteLayer={handleDeleteLayer}
+              onToggleLock={handleToggleLock}
+              onToggleVisibility={handleToggleVisibility}
+              onReorderLayer={handleReorderLayer}
+              onRenameLayer={handleRenameLayer}
+              selectedObject={selectedObject}
+              onUpdateObject={handleUpdateObject}
+              settings={canvasSettings}
+              onUpdateSettings={handleUpdateSettings}
+            />
+            
+            <CanvasArea 
+              canvasRef={canvasRef}
+              currentView={currentProduct.views[0]}
+              currentProductColor={currentProductColor.hex}
+              onSelectionCleared={() => setSelectedObject(null)}
+              onObjectSelected={setSelectedObject}
+              setLayers={setLayers}
+              settings={canvasSettings}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };
